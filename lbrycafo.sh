@@ -27,7 +27,7 @@ init() {
     if ! which docker > /dev/null; then
         echo "Install docker"
         exit 1
-    fisu
+    fi
     exe mkdir -p $TEMPLATE_DIR/default
     exe mkdir -p $WALLET_DIR/default
     (
@@ -40,6 +40,15 @@ streaming_server: 127.0.0.1:5280
 EOF
 }
 
+stop() {
+    set -e
+    if [ "$#" -ne 0 ]; then
+        echo "error: too many args"
+        echo "lbrycafo stop"
+    fi
+    exe sudo docker kill lbrynet
+
+}
 start() {
     set -e
     if [ "$#" -eq 0 ]; then
