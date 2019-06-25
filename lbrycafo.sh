@@ -5,17 +5,17 @@ exe() { ( echo "## $*"; $*; ) }
 ## dockerfile
 ## Environment
 
-LBC_LBRY_DOCKER_REPO=${LBC_LBRY_DOCKER_REPO:-https://github.com/lbryio/lbry-docker.git}
+LBC_LBRY_DOCKER_REPO=${LBC_LBRY_DOCKER_REPO:-https://github.com/lbryio/lbry-docker}
 LBC_LBRYNET_ORG_REPO=${LBC_ORG_REPO:-lbryio/lbry-sdk}
 LBC_HOME=${LBC_HOME:-$HOME/.local/lbrycafo}
 LBC_LBRY_DOCKER_HOME=$LBC_HOME/lbry-docker
-
 
 ## Internal vars
 
 TEMPLATE_DIR=$LBC_HOME/templates
 WALLET_DIR=$LBC_HOME/wallets
 HOST_IP=127.0.0.1
+LBRYNET_CONTAINER_NAME=lbrynet
 
 # Subcommands
 
@@ -41,16 +41,10 @@ EOF
 }
 
 stop() {
-    set -e
-    if [ "$#" -ne 0 ]; then
-        echo "error: too many args"
-        echo "lbrycafo stop"
-    fi
-    exe sudo docker kill lbrynet
-
+    exe sudo docker kill $LBRYNET_CONTAINER_NAME
 }
+
 start() {
-    set -e
     if [ "$#" -eq 0 ]; then
         VERSION=$(curl -s https://api.github.com/repos/lbryio/lbry-sdk/releases/latest | grep -oP '"tag_name": "\K(.*)(?=")')
         TEMPLATE=default
@@ -97,7 +91,7 @@ start() {
 
     exe sudo docker run --rm -d \
         -p $HOST_IP:5279:5279 \
-        --name lbrynet \
+        --name $LBRYNET_CONTAINER_NAME \
         -v $WALLET_PATH:/home/lbrynet \
         -v $TEMPLATE_PATH:/etc/lbry/daemon_settings.yml \
         $DOCKER_TAG
@@ -105,8 +99,37 @@ start() {
     exe sudo docker ps
 }
 
-## ifmain TODO: only specified subcommands can run
+## Main function to run all subcommands:
+SUBCOMMANDS_NO_ARGS=(init stop)
+SUBCOMMANDS_PASS_ARGS=(start)
 
-$*
-
-
+if printf '%s\n' ${SUBCOMMANDS_NO_ARGS[@]} | grep -q -P "^$1$"; then
+    ## Subcommands that take no arguments:
+    (
+        set -e
+        if [ "$#" -eq 1 ]; then
+            $*
+        else
+            echo "$1 does not take any additional arguments"
+        fi
+    )
+elif printf '%s\n' ${SUBCOMMANDS_PASS_ARGS[@]} | grep -q -P "^$1$"; then
+    ## Subcommands that pass all arguments:
+    (
+        set -e
+        $*
+    )
+else
+    if [[ $# -gt 0 ]]; then
+        echo "## Invalid command: $1"
+    else
+        echo "## Must specify a command:"
+    fi
+    echo ""
+    echo "##   lbry-cafo init"
+    echo "##     - Initialize lbry-cafo"
+    echo "##   lbry-cafo start [VERSION] [TEMPLATE] [WALLET]"
+    echo "##     - Start lbrynet container"
+    echo "##   lbry-cafo stop"
+    echo "##     - Stop lbrynet container"
+fi
