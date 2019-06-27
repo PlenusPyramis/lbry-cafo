@@ -6,6 +6,7 @@ exe() { ( echo "## $*"; $*; ) }
 ## Environment
 
 LBC_LBRY_DOCKER_REPO=${LBC_LBRY_DOCKER_REPO:-https://github.com/lbryio/lbry-docker}
+LBC_LBRY_DOCKER_BRANCH=${LBC_LBRY_DOCKER_BRANCH:-master}
 LBC_LBRYNET_ORG_REPO=${LBC_ORG_REPO:-lbryio/lbry-sdk}
 LBC_HOME=${LBC_HOME:-$HOME/.local/lbrycafo}
 LBC_LBRY_DOCKER_HOME=$LBC_HOME/lbry-docker
@@ -32,7 +33,10 @@ init() {
     exe mkdir -p $WALLET_DIR/default
     (
         cd $LBC_HOME
+        exe rm -rf $LBC_LBRY_DOCKER_HOME
         exe git clone $LBC_LBRY_DOCKER_REPO $LBC_LBRY_DOCKER_HOME
+        cd $LBC_LBRY_DOCKER_HOME
+        exe git checkout $LBC_LBRY_DOCKER_BRANCH
     )
     cat <<'EOF' > $TEMPLATE_DIR/default/daemon_settings.yml
 api: 127.0.0.1:5279
